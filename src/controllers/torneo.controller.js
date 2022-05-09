@@ -12,6 +12,7 @@ function agregarTorneo(req, res) {
         modeloTorneo.descripcion = parametros.descripcion;
 
         modeloTorneo.save((err, torneoGuardado) => {
+            
             if (err) return res.status(500).send({ mensaje: 'Hubo un error en la peticionn' })
             if (!torneoGuardado) return res.status(404).send({ mensaje: 'Hubo un error al agregar el torneo' })
             return res.status(200).send({torneo: torneoGuardado})
@@ -33,6 +34,7 @@ function editarTorneo(req, res) {
     if (rol == 'Admin') {
 
         Torneo.findByIdAndUpdate(idTorneo, parametros, { new: true }, (err, torneoEditado) => {
+
             if (err) return res.status(500).send({ mensaje: 'Hubo un error en la peticion' })
             if (!torneoEditado) return res.status(404).send({ mensaje: 'Hubo un error al editar el torneo' })
 
@@ -45,21 +47,6 @@ function editarTorneo(req, res) {
         return res.status(500).send({ mensaje: 'Solo los administradores pueden editar un torneo' })
     }
 
-}
-
-function obtenerTorneo(req, res) {
-
-    const rol = req.user.rol;
-
-    if (rol == 'Admin') {
-        Torneo.find({}, (err, torneosEncontrados) => {
-            if (err) return res.status(500).send({ mensaje: 'Hubo un error en la peticion' })
-            if (!torneosEncontrados) return res.status(404).send({ mensake: 'Hubo un error al obtener los torneos' })
-            return res.status(200).send({ torneos: torneosEncontrados })
-
-        })
-
-    }
 }
 
 function eliminarTorneo(req, res) {
@@ -78,9 +65,27 @@ function eliminarTorneo(req, res) {
     }
 }
 
+function obtenerTorneo(req, res) {
+
+    const rol = req.user.rol;
+
+    if (rol == 'Admin') {
+        Torneo.find({}, (err, torneosEncontrados) => {
+
+            if (err) return res.status(500).send({ mensaje: 'Hubo un error en la peticion' })
+            if (!torneosEncontrados) return res.status(404).send({ mensake: 'Hubo un error al obtener los torneos' })
+            return res.status(200).send({ torneos: torneosEncontrados })
+
+        })
+
+    } else {
+        return res.status(500).send({ mensaje: 'Solo los administradores pueden obtener los torneos' })
+    }
+}
+
 module.exports = {
     agregarTorneo,
-    obtenerTorneo,
     editarTorneo,
-    eliminarTorneo
+    eliminarTorneo,
+    obtenerTorneo
 }
