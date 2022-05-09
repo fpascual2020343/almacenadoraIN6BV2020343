@@ -3,66 +3,59 @@ const bcrypt = require('bcrypt-nodejs');
 const jwt = require('../services/jwt');
 
 function UsuarioDefault(req, res) {
-
     var modeloUsuario = new Usuario();
-
-    Usuario.find({ email: "admin@gmail.com" }, (err, existente) => {
-
-        if (existente.length > 0) {
-            console.log("El  admin ya esta registrado");
+    Usuario.find({ email: "Administrador@gmail.com", nombre: "Admin" }, (err, usuarioEncontrado) => {
+        if (usuarioEncontrado.length > 0) {
+            console.log({ mensaje: "ya se ha creado el usuario del Administrador" })
         } else {
 
-            modeloUsuario.nombre = "ADMIN";
-            modeloUsuario.email = "admin@gmail.com";
+            modeloUsuario.nombre = "Admin";
+            modeloUsuario.email = "Administrador@gmail.com";
             modeloUsuario.password = "deportes123";
             modeloUsuario.rol = "Admin";
 
-            bcrypt.hash('deportes123', null, null, (err, passwordEncriptada) => {
+            bcrypt.hash(modeloUsuario.password, null, null, (err, passwordEncryptada) => {
 
-                modeloUsuario.password = passwordEncriptada;
-
+                modeloUsuario.password = passwordEncryptada
                 modeloUsuario.save((err, usuarioGuardado) => {
+                    if (err) console.log({ mensaje: 'error en la peticion ' })
+                    if (!usuarioGuardado) console.log({ mensaje: 'error al crear usuario por defecto ' })
+                    console.log({ Usuario: usuarioGuardado })
 
-                    if (err) console.log("Error en la peticion")
-                    if (!usuarioGuardado) console.log("Error al guardar el admin");
-
-                    console.log({ Usuario: usuarioGuardado });
                 })
             })
         }
-
     })
 
 }
 
 function Login(req, res) {
-
     var parametros = req.body;
 
-    Usuario.findOne({ usuario: parametros.usuario }, (err, usuarioEncontrado) => {
-        if (err) return res.status(500).send({ mensaje: 'Error en la peticion' });
-        if (usuarioEncontrado) {
+    Usuario.findOne({ nombre : parametros.nombre }, (err, usuarioEncontrado) => {
+        if(err) return res.status(500).send({ mensaje: 'Error en la peticion'});
+        if (usuarioEncontrado){
 
-            bcrypt.compare(parametros.password, usuarioEncontrado.password,
+            bcrypt.compare(parametros.password, usuarioEncontrado.password, 
                 (err, verificacionPassword) => {
                     if (verificacionPassword) {
                         return res.status(200)
-                            .send({ token: jwt.crearToken(usuarioEncontrado) })
+                            .send({token: jwt.crearToken(usuarioEncontrado)})
                     } else {
-                        return res.status(500).send({ mensaje: 'La contrasena no coincide.' })
+                        return res.status(500)
+                            .send({ mensaje: 'La contrasena no coincide.'})
                     }
                 })
         } else {
-            return res.status(500).send({ mensaje: 'El usuario, no se ha podido identificar' })
+            return res.status(500)
+                .send({ mensaje: 'El nombre, no se ha podido identificar'})
         }
     })
 }
 
-
-function agregarUsuario(req, res) {
-
-    var parametros = req.body;
-    var modeloUsuarios = new Usuario();
+function agregarAdministrador(req, res) {
+    const modeloUsuario = new Usuario();
+    const parametros = req.body
 
     Usuario.find({ email: parametros.email }, (err, existente1) => {
 
@@ -71,88 +64,127 @@ function agregarUsuario(req, res) {
             return res.status(200).send({ mensaje: "Este correo ya esta en uso" })
 
         } else {
+            
+            if (req.user.rol == 'Admin') {
 
-            if (parametros.nombre && parametros.email && parametros.rol) {
-
-                modeloUsuarios.nombre = parametros.nombre;
-                modeloUsuarios.email = parametros.email;
-                modeloUsuarios.rol = parametros.rol;
-
-                bcrypt.hash(parametros.password, null, null, (err, passwordEncriptada) => {
-
-                    modeloUsuarios.password = passwordEncriptada;
-
-                    modeloUsuarios.save((err, usuarioGuardado) => {
-
-                        if (err) return res.status(404).send({ mensaje: "Error en la peticion" })
-                        if (!usuarioGuardado) return res.status(404).send({ mensaje: "Error al guardar al usuario" });
-
-                        return res.status(200).send({ Usuario: usuarioGuardado });
+                modeloUsuario.nombre = parametros.nombre;
+                modeloUsuario.email = parametros.email;
+                modeloUsuario.rol = 'Admin'
+                
+                bcrypt.hash(parametros.password, null, null, (err, passwordEncryptada) => {
+                    modeloUsuario.password = passwordEncryptada
+                    modeloUsuario.save((err, usuarioGuardado) => {
+                        if (err) res.status(500).send({ mensaje: 'error en la peticion ' })
+                        if (!usuarioGuardado) res.status(404).send({ mensaje: 'error al crear usuario por defecto ' })
+                        return res.status(200).send({ Usuario: usuarioGuardado })
+        
                     })
                 })
-
-            } else {
-                return res.status(400).send({ mensaje: "Debe de agregar los parametros Obligatorios" });
             }
 
         }
-
     })
 
 }
 
 function editarUsuario(req, res) {
 
-    var idUser = req.params.idUsuario;
-    var parametros = req.body;
+    const parametros = req.body;
+    const idUsuario = req.params.idUsuario;
 
-    //Borrar la propiedad de password y el rol en el body
-    delete parametros.rol;
-    delete parametros.password;
+    if (req.user.rol == 'Admin') {
 
-    if(req.user.sub !== idUser) {
+        Usuario.findOne({ _id: idUsuario }, (err, usuarioEncontrado) => {
 
-        return res.status(500).send({ mensaje: "No tiene los permisos para editar un usuario que no es el suyo"});
-    
+            if (err) return res.status(500).send({ mensaje: 'Hubo un error en la peticion' })
+            if (!usuarioEncontrado) return res.status(500).send({ mensaje: 'Hubo un error en la peticion' })
+
+            if (usuarioEncontrado.rol == 'Admin') {
+                return res.status(500).send({ mensaje: 'No puede editar a los usuarios con un rol de administrador' })
+            } else {
+                Usuario.findByIdAndUpdate(idUsuario, parametros, { new: true }, (err, usuarioActualizado) => {
+                    if (err) return res.status(500).send({ mensaje: 'Hubo un error en la peticion' })
+                    if (!usuarioActualizado) return res.status(400).send({ mensaje: 'Hubo un error al actualizar en usuario' })
+
+                    return res.status(200).send({ usuario: usuarioActualizado })
+
+                })
+            }
+
+        })
+
+    } else {
+        return res.status(500).send({ mensaje: 'Solo los administradores pueden editar los usuarios' })
     }
-    
-    Usuario.findByIdAndUpdate(req.user.sub, parametros, {new: true}, (err, usuarioEditado)=>{
-        if(err) return res.status(500).send({ mensaje: 'Error en  la peticion'});
-        if(!usuarioEditado) return res.status(500).send({ mensaje: "Error al editar el Usuario"});
 
-        return res.status(200).send({usuario: usuarioEditado});
+}
 
+function registrarUsuario(req, res) {
+    const modeloUsuario = new Usuario();
+    const parametros = req.body
+
+    Usuario.find({ email: parametros.email }, (err, existente1) => {
+
+        if (existente1.length > 0) {
+
+            return res.status(200).send({ mensaje: "Este correo ya esta en uso" })
+
+        } else { 
+
+            if (parametros.nombre && parametros.password) {
+
+                modeloUsuario.nombre = parametros.nombre;
+                modeloUsuario.email = parametros.email;
+                modeloUsuario.rol = 'Usuario'
+        
+                bcrypt.hash(parametros.password, null, null, (err, passwordEncryptada) => {
+                    modeloUsuario.password = passwordEncryptada
+                    modeloUsuario.save((err, usuarioGuardado) => {
+                        if (err) res.status(500).send({ mensaje: 'error en la peticion ' })
+                        if (!usuarioGuardado) res.status(404).send({ mensaje: 'error al crear usuario por defecto ' })
+                        return res.status(200).send({ Usuario: usuarioGuardado })
+        
+                    })
+                })
+            } else {
+                return res.status(500).send({ mensaje: 'Debe enviar los parametros obligatorios' })
+            }
+
+        }
     })
+
 
 }
 
 function eliminarUsuario(req, res) {
+    const idUsuario = req.params.idUsuario;
 
-    var idUser = req.params.idUsuario;
+    Usuario.findOne({ _id: idUsuario }, (err, usuarioEncontrado) => {
 
-    if(req.user.sub !== idUser) {
+        if (err) return res.status(500).send({ mensaje: 'Hubo un error en la peticion' })
+        if (!usuarioEncontrado) return res.status(500).send({ mensaje: 'Hubo un error en la peticion' })
 
-        return res.status(500).send({ mensaje: "No tiene los permisos para eliminar un usuario que no es el suyo"});
-    
-    }
-    
-    Usuario.findByIdAndDelete(req.user.sub, (err, usuarioEliminado)=>{
+        if (usuarioEncontrado.rol == 'Admin') {
+            return res.status(500).send({ mensaje: 'No puede eliminar a los usuarios con un rol de administrador' })
+        } else {
 
-        if(err) return res.status(500).send({ mensaje: 'Error en  la peticion'});
-        if(!usuarioEliminado) return res.status(500).send({ mensaje: "Error al eliminar el Usuario"});
+            Usuario.findByIdAndDelete({ _id: idUsuario }, (err, usuarioEliminada) => {
+                if (err) return res.status(500).send({ mensaje: 'Hubo un error en la peticion' });
+                if (!usuarioEliminada) return res.status(500).send({ mensaje: 'Hubo un error al eliminar la empresa' });
 
-        return res.status(200).send({usuario: usuarioEliminado});
+                return res.status(200).send({ usuario: usuarioEliminada })
+            })
+        }
 
     })
 
 }
 
-
-
 module.exports = {
     UsuarioDefault,
     Login,
-    agregarUsuario,
+    agregarAdministrador,
     editarUsuario,
+    registrarUsuario,
     eliminarUsuario
 }

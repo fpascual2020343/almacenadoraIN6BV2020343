@@ -10,4 +10,8 @@ app.use(express.json());
 app.use(cors());
 
 app.use('/api', UsuarioRutas);
+<<<<<<< Updated upstream
 module.exports = app;
+=======
+module.exports = app;
+>>>>>>> Stashed changes
