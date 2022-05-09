@@ -1,0 +1,29 @@
+{
+  "name": "almacenadora",
+  "version": "1.0.0",
+  "description": "Proyecto liga de 2020343",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fpascual2020343/almacenadoraIN6BV2020343.git"
+  },
+  "author": "Franshesco Pascual",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fpascual2020343/almacenadoraIN6BV2020343/issues"
+  },
+  "homepage": "https://github.com/fpascual2020343/almacenadoraIN6BV2020343#readme",
+  "dependencies": {
+    "bcrypt-nodejs": "^0.0.3",
+    "cors": "^2.8.5",
+    "express": "^4.18.1",
+    "jwt-simple": "^0.5.6",
+    "moment": "^2.29.3",
+    "mongoose": "^6.3.2",
+    "nodemon": "^2.0.16"
+  }
+}
